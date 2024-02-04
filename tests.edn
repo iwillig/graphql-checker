@@ -1,2 +1,3 @@
 #kaocha/v1
-{:plugins [:kaocha.plugin/cloverage]}
+{:plugins [:kaocha.plugin/cloverage :kaocha.plugin/junit-xml]
+ :kaocha.plugin.junit-xml/target-file "junit.xml"}

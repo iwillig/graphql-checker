@@ -10,7 +10,7 @@
   lambdaisland/kaocha                {:mvn/version "1.87.1366"}
 
   lambdaisland/kaocha-cloverage      {:mvn/version "1.1.89"}
-
+  lambdaisland/kaocha-junit-xml      {:mvn/version "1.17.101"}
 
   org.clojure/tools.namespace        {:mvn/version "1.4.5"}
   nubank/matcher-combinators         {:mvn/version "3.8.8"}

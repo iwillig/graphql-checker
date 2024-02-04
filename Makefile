@@ -20,6 +20,9 @@ repl:
 test:
 	clojure -M:tests
 
+.PHONY: clean
+clean:
+	-rm junit.xml
 
 .PHONY: check
 check: outdated lint test

@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ "main" ]
 
+
+artifacts:
+  reports:
+    junit: junit.xml
+
 jobs:
   build:
 
@@ -18,8 +23,7 @@ jobs:
       uses: actions/setup-java@v3
       with:
         distribution: 'zulu'
-        java-version: '8'
-
+        java-version: '21'
 
     - name: Install Clojure
       uses: DeLaGuardo/setup-clojure@master
@@ -31,3 +35,9 @@ jobs:
 
     - name: Run Check
       run: make
+
+    - name: Annotate failure
+      if: failure()
+      uses: mikepenz/action-junit-report@41a3188dde10229782fd78cd72fc574884dd7686
+      with:
+        report_paths: junit.xml
