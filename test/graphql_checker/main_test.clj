@@ -9,4 +9,5 @@
    (match?
     {:key :value
      :other-key :another-value}
-    {:key :value})))
+    {:other-key :another-value
+     :key :value})))
