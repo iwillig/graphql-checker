@@ -14,5 +14,11 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - uses: actions/checkout@v3
+      name: Install Clojure
+      uses: DeLaGuardo/setup-clojure@master
+      with:
+        cli: '1.10.3.814'
+
     - name: Run Check
       run: make
