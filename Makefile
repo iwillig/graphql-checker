@@ -1,5 +1,3 @@
-
-
 .DEFAULT_GOAL := check
 
 .PHONY: rebel
@@ -9,7 +7,6 @@ rebel:
 .PHONY: outdated
 outdated:
 	clojure -M:outdated
-
 
 .PHONY: lint
 lint:

@@ -5,11 +5,21 @@
 
   clj-antlr/clj-antlr                {:mvn/version "0.2.13"}
   clj-commons/clj-yaml               {:mvn/version "1.0.27"}
+  com.walmartlabs/lacinia            {:mvn/version "1.2.1"}
 
   lambdaisland/kaocha                {:mvn/version "1.87.1366"}
+
+  lambdaisland/kaocha-cloverage      {:mvn/version "1.1.89"}
+
+
   org.clojure/tools.namespace        {:mvn/version "1.4.5"}
   nubank/matcher-combinators         {:mvn/version "3.8.8"}
 
+  org.clojure/test.check             {:mvn/version "1.1.1"}
+
+
+
+  org.clojure/tools.cli              {:mvn/version "1.0.219"}
   io.github.nextjournal/markdown     {:mvn/version "0.5.148"}
   org.slf4j/slf4j-simple             {:mvn/version "2.0.11"}
   org.jsoup/jsoup                    {:mvn/version "1.17.2"}

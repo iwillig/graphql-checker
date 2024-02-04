@@ -7,5 +7,6 @@
 (t/deftest test-okay
   (t/is
    (match?
-    false?
-    true)))
+    {:key :value
+     :other-key :another-value}
+    {:key :value})))
