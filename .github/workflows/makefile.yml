@@ -6,11 +6,6 @@ on:
   pull_request:
     branches: [ "main" ]
 
-
-artifacts:
-  reports:
-    junit: junit.xml
-
 jobs:
   build:
 
@@ -36,8 +31,14 @@ jobs:
     - name: Run Check
       run: make
 
-    - name: Annotate failure
-      if: failure()
-      uses: mikepenz/action-junit-report@41a3188dde10229782fd78cd72fc574884dd7686
+    - name: Update junit.xml
+      uses: actions/upload-artifact@v4
       with:
-        report_paths: junit.xml
+        name: junit-file
+        path: junit.xml
+
+    - name: Update coverage file
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-file
+        path: target/coverage/index.html
