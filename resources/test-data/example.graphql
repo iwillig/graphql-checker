@@ -1,15 +1,25 @@
+"""
+This is an example doc string
+"""
 type Query {
-  dog: Dog
+  dog: Dog ## This is is a comment
   findDog(searchBy: FindDogInput): Dog
 }
 
+"""
+Another doc string
+"""
 enum DogCommand {
   SIT
   DOWN
   HEEL
 }
 
-type Dog implements Pet {
+## graphql-checker: Don't reuser the type implementation in the doc string.
+"""
+A dog implements the pet
+"""
+type Dog implements Pet & NickName {
   name: String!
   nickname: String
   barkVolume: Int
@@ -24,6 +34,10 @@ interface Sentient {
 
 interface Pet {
   name: String!
+}
+
+interface NickName {
+  nickName: String
 }
 
 type Alien implements Sentient {
