@@ -1,4 +1,10 @@
+EXAMPLE_DATABASE = example.db
+SQL_SCHEMA = graphql_schema_ddl.sql
+
 .DEFAULT_GOAL := check
+
+$(EXAMPLE_DATABASE): $(SQL_SCHEMA)
+	sqlite3 $(EXAMPLE_DATABASE) < $(SQL_SCHEMA)
 
 .PHONY: rebel
 rebel:
@@ -23,6 +29,9 @@ test:
 .PHONY: clean
 clean:
 	-rm junit.xml
+	-rm -r target
+	-rm $(EXAMPLE_DATABASE)
+
 
 .PHONY: check
 check: outdated lint test

@@ -15,26 +15,42 @@
               "com/walmartlabs/lacinia/schema.g4"))
 
 (defrecord NameToken [name-value])
+
 (defrecord TypeSpec  [type-name requied])
+
 (defrecord FieldDef  [field-name type-spec])
+
 (defrecord TypeDef   [type-name fields])
+
 (defrecord ListType  [type-sec])
 
-
 (comment
-
   :graphqlSchema
-
   :typeDef
   :typeSpec
   :fieldDef
-
-
   :anyName
-  :nameTokens
+  :nameTokens)
 
+(comment
+  {:type-def/name       "Human"
+   :type-def/implements {}
+   :type-def/fields     #{}}
 
-  )
+  {:field-def/name      "name"
+   :field-def/type-name "String"
+   :field-def/required  true}
+
+  '(:fieldDef
+    (:anyName (:nameTokens "name"))
+    ":"
+    (:typeSpec
+     (:typeName (:anyName (:nameTokens "String")))
+     (:required !)))
+
+  (:typeSpec
+   (:typeName (:anyName (:nameTokens "String")))
+   (:required "!")))
 
 ;; Taken and simplifed from Lacina parser.schema
 (defmulti xform
@@ -66,19 +82,6 @@
   [(keyword operation)
    (remove #{"&"} types)])
 
-
-(comment
-  '(:fieldDef
-    (:anyName (:nameTokens "name"))
-    ":"
-    (:typeSpec
-     (:typeName (:anyName (:nameTokens "String")))
-     (:required !))))
-
-(comment
-  (:typeSpec
-   (:typeName (:anyName (:nameTokens "String")))
-   (:required "!")))
 
 (def drop-string-xform
   (comp
@@ -133,5 +136,4 @@
        (map xform)))
 
 (defn -main [& _args]
-  (xform-schema
-   (parse-schema "test-data/example.graphql")))
+  (parse-schema "test-data/example.graphql"))

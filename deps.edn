@@ -5,6 +5,7 @@
 
 
   datascript/datascript              {:mvn/version "1.6.1"}
+  metosin/jsonista                   {:mvn/version "0.3.8"}
 
   clj-antlr/clj-antlr                {:mvn/version "0.2.13"}
   clj-commons/clj-yaml               {:mvn/version "1.0.27"}
