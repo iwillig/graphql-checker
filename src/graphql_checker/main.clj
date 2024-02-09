@@ -14,15 +14,17 @@
 (def grammar (common/compile-grammar
               "com/walmartlabs/lacinia/schema.g4"))
 
-(defrecord NameToken [name-value])
+(defrecord Position [row column index stop])
 
-(defrecord TypeSpec  [type-name requied])
+(defrecord NameToken [name position])
 
-(defrecord FieldDef  [field-name type-spec])
+(defrecord TypeSpec  [type-name requied position])
 
-(defrecord TypeDef   [type-name fields])
+(defrecord FieldDef  [field-name type-spec position])
 
-(defrecord ListType  [type-sec])
+(defrecord TypeDef   [type-name fields implements position])
+
+(defrecord ListType  [type-sec position])
 
 (comment
   :graphqlSchema
@@ -67,21 +69,22 @@
         :else x))
 
 (defmethod xform :nameTokens
-  [[_ token]]
-  token)
+  [[_ token :as args]]
+  (map->NameToken
+   {:name token
+    :position (map->Position (meta args))}))
 
 (defmethod xform :anyName
   [[_ name-tokens]]
   (xform name-tokens))
 
 (comment
-  '(:implementationDef implements Sentient))
+  '(:implementationDef "implements" "Sentient"))
 
 (defmethod xform :implementationDef
   [[_ operation & types]]
   [(keyword operation)
    (remove #{"&"} types)])
-
 
 (def drop-string-xform
   (comp
@@ -103,9 +106,7 @@
 
 (defmethod xform :fieldDefs
   [[_ & rest-prod]]
-  (into []
-        drop-string-xform
-        rest-prod))
+  rest-prod)
 
 (defmethod xform :listType
   [[_ & rest-prod]]
@@ -114,14 +115,22 @@
          drop-string-xform
          rest-prod)])
 
-(defmethod xform :typeDef
-  [prod]
-  (let [type-info (nthrest prod 2)]
+(comment
     [:typeDef
      (map
       maybe-xform
-      type-info)]))
+      type-info)]
+  )
 
+(defmethod xform :typeDef
+  [prod]
+  (let [type-info (nthrest prod 2)]
+    #_(map->TypeDef
+       {})
+    (map
+     maybe-xform
+     type-info)
+    ))
 
 (defn parse-schema
   [path]
