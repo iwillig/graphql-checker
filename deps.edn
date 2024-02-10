@@ -3,8 +3,10 @@
   org.clojure/clojure                {:mvn/version "1.11.1"}
   org.clj-commons/pretty             {:mvn/version "2.2.1"}
 
+  datascript/datascript              {:mvn/version "1.6.1"}
 
   metosin/jsonista                   {:mvn/version "0.3.8"}
+  funcool/cuerdas                    {:mvn/version "2023.11.09-407"}
 
   clj-antlr/clj-antlr                {:mvn/version "0.2.13"}
   clj-commons/clj-yaml               {:mvn/version "1.0.27"}

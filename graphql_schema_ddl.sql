@@ -1,5 +1,7 @@
 
 
+
+
 create table if not exists graphql_schema (
 
   id integer primary key asc,
