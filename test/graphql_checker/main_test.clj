@@ -18,10 +18,8 @@
   (t/testing "when we parse the schema"
     (let [thing (gqlc.main/-main)]
       (binding [*print-meta* true]
-        (clojure.pprint/pprint thing))
-
-      (t/is (match? nil?
-                    (gqlc.main/xform thing))))))
+        (t/is (match? nil?
+                      (gqlc.main/xform thing)))))))
 
 (t/deftest test-xform-type-def
   (let [subject '(:typeDef

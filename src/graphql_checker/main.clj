@@ -4,6 +4,7 @@
    [clj-antlr.core :as antlr]
    [cuerdas.core :as str]
    [com.walmartlabs.lacinia.parser.common :as common]
+   [clojure.core.match :refer [match]]
    [datascript.core :as d]
    [clojure.java.io :as io]))
 
@@ -14,13 +15,19 @@
 (def grammar-graphql (common/compile-grammar
                       "com/walmartlabs/lacinia/Graphql.g4"))
 
-(defn detect-type
+(def datascript-schema
+  {})
+
+(defn detect-namespace
+  "Function that can be used multimethods to correct detect the
+  entites's namespace."
   [x]
   (::namespace (meta x)))
 
-(defmulti to-sql #'detect-type)
-
-(defn typed-map
+(defn namespace-map
+  "Given a keyword of a namespace, and a normal clojure map
+   Returns the clojure map with the keys namespaced with the provided
+  namespace"
   [namespace values]
   (with-meta
     (reduce-kv (fn [acc key value]
@@ -31,18 +38,23 @@
                values)
     {::namespace namespace}))
 
-(def position    (partial typed-map :position))
-(def description (partial typed-map :description))
-(def name-token  (partial typed-map :name-token))
-(def type-spec   (partial typed-map :type-spec))
-(def field-def   (partial typed-map :field-def))
-(def fields      (partial typed-map :fields))
-(def list-type   (partial typed-map :list-type))
-(def type-name   (partial typed-map :type-name))
-(def type-def    (partial typed-map :type-def))
-(def argument    (partial typed-map :argument))
-(def arg-list    (partial typed-map :arg-list))
-(def graphql-schema (partial typed-map :graphql-schema))
+(def position    (partial namespace-map :position))
+(def description (partial namespace-map :description))
+(def name-token  (partial namespace-map :name-token))
+(def list-name-token (partial namespace-map :list-name-token))
+(def type-spec   (partial namespace-map :type-spec))
+(def field-def   (partial namespace-map :field-def))
+(def fields      (partial namespace-map :fields))
+(def list-type   (partial namespace-map :list-type))
+(def type-name   (partial namespace-map :type-name))
+(def type-def    (partial namespace-map :type-def))
+(def argument    (partial namespace-map :argument))
+(def arg-list    (partial namespace-map :arg-list))
+(def implements  (partial namespace-map :implements))
+(def required    (partial namespace-map :required))
+
+
+(def graphql-schema (partial namespace-map :graphql-schema))
 
 (defn get-position
   "Given an object with a poisiton metadata
@@ -52,6 +64,8 @@
     (when (:clj-antlr/position antlr)
       (position
        (:clj-antlr/position antlr)))))
+
+(defmulti to-sql #'detect-namespace)
 
 (comment
   :graphqlSchema
@@ -65,6 +79,7 @@
 (defmulti xform
   #'first)
 
+;; Default method
 (defmethod xform :default [prod]
   prod)
 
@@ -77,13 +92,18 @@
 
 (defn- group-info
   [type-info]
-  (group-by detect-type type-info))
+  (group-by detect-namespace type-info))
 
 (defn- prepare-parse-production
   [parsed-form]
   (into []
          drop-string-xform
          parsed-form))
+
+(defn- prep-and-group-production
+  [parsed-form]
+  (-> (prepare-parse-production parsed-form)
+      (group-info)))
 
 (defn- all
   [type-info type-name]
@@ -96,7 +116,7 @@
 (defmethod xform :nameTokens
   [[_ token :as args]]
   (name-token
-   {:name     (keyword token)
+   {:value    (keyword "name-token.value" token)
     :position (get-position args)}))
 
 (defmethod xform :description
@@ -114,23 +134,41 @@
   (xform name-tokens))
 
 (defmethod xform :required
-  [[_ value :as _args]]
-  (= value "!"))
+  [[_ value :as args]]
+  (required {:value (= value "!")
+             :position (get-position args)}))
 
 (comment
   '(:implementationDef "implements" "Sentient"))
 
 (defmethod xform :implementationDef
   [[_ operation & types]]
-  [(keyword operation)
-   (remove #{"&"} types)])
+  (implements {:operation operation
+               :type-values (mapv keyword (remove #{"&"} types))}))
+
+(defn list-type-name
+  [list-type]
+  (list-name-token {:list-of (get-in list-type [:list-type/type-spec
+                                                :type-spec/name
+                                                :type-name/name
+                                                :name-token/value])}))
 
 (defmethod xform :typeSpec
-  [[_ type-name require :as args]]
-  (type-spec
-   {:type-name (xform type-name)
-    :required  (xform require)
-    :position  (get-position args)}))
+  [args]
+  (let [type-info (group-info (prepare-parse-production args))
+
+        type-name (one type-info :type-name)
+        required  (one type-info :required)
+
+        list-type (one type-info :list-type)
+        type-spec (type-spec
+                   {:name (match [(some? type-name) (some? list-type)]
+                                 [true false] type-name
+                                 [false true] (list-type-name list-type))
+                    :required  required
+                    :position  (get-position args)
+                    :list-type list-type})]
+    type-spec))
 
 (defmethod xform :argument
   [parse-prod]
@@ -154,7 +192,6 @@
   (let [type-info  (group-info (prepare-parse-production args))
         field-name (one type-info :name-token)
         type-spec  (one type-info :type-spec)]
-
     (field-def
      {:field-name field-name
       :type-spec  type-spec
@@ -175,12 +212,13 @@
     :position (get-position args)}))
 
 (defmethod xform :listType
-  [[_ & rest-prod :as args]]
-  (list-type
-   {:type-spec (into []
-                     drop-string-xform
-                     rest-prod)
-    :position (get-position args)}))
+  [args]
+  (let [type-info (group-info (prepare-parse-production args))
+        type-spec (one type-info :type-spec)]
+
+    (list-type
+     {:type-spec type-spec
+      :position (get-position args)})))
 
 (defmethod xform :typeDef
   [prod]
@@ -193,12 +231,13 @@
         type-name-value   (one type-info :name-token)
         ;; Assume there there is only one description per type for
         ;; now.
-        description (one type-info :description)]
+        description (one type-info :description)
+        implements  (one type-info :implements)]
     (type-def
      {:type-name   type-name-value
       :description description
       :fields      (get type-info :fields)
-      :implements  nil
+      :implements  implements
       :position    (get-position prod)})))
 
 (defmethod xform :graphqlSchema
