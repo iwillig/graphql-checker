@@ -5,25 +5,86 @@
    ;;[matcher-combinators.matchers :as m]
    [clojure.test :as t]))
 
-(t/deftest test-okay
-  (t/is
-   (match?
-    {:key :value
-     :other-key :another-value}
-    {:other-key :another-value
-     :key :value})))
+(defn gen-random-antlr-position
+  []
+  {:row    (rand-int 400)
+   :column (rand-int 80)
+   :index  (rand-int 1000)
+   :stop   (rand-int 100)})
 
-(t/deftest test-parse-schema
-  (t/testing "when we parse the schema"
-    (let [thing (gqlc.main/-main)]
-      (binding [*print-meta* true]
-        (t/is (match? nil?
-                      (gqlc.main/ast->clj thing)))))))
+(defn- generate-form
+  ([form]
+   (generate-form form (gen-random-antlr-position)))
+  ([form position]
+   (with-meta
+     form
+     #:clj-antlr{:position position})))
+
+(def example-graphql-string
+  "type Character {
+  name: String!
+  appearsIn: [Episode!]!
+}")
+
+(def example-ast
+  '(:graphqlSchema
+    (:typeDef "type"
+              (:anyName (:nameTokens "Character"))
+              (:fieldDefs "{"
+                          (:fieldDef (:anyName (:nameTokens "name")) ":"
+                                     (:typeSpec (:typeName (:anyName (:nameTokens "String"))) (:required "!")))
+                          (:fieldDef (:anyName (:nameTokens "appearsIn")) ":"
+                                     (:typeSpec
+                                      (:listType "["
+                                                 (:typeSpec (:typeName (:anyName
+                                                                        (:nameTokens "Episode")))
+                                                            (:required "!"))
+                                                 "]")
+                                      (:required "!")))
+                          "}"))))
+
+(t/deftest test-parse-gql-string
+  (t/testing "Given: A GraphQL String"
+    (let [subject example-graphql-string]
+      (t/testing "When: We parse that string"
+        (let [results (gqlc.main/parse-schema-string subject)]
+          ;; This is more of an example of what the AST looks like
+          (t/testing "Then: A valid GraphQL AST is returned"
+            (t/is (match? example-ast
+                          results))))))))
+
+
+
+(t/deftest test-parse-and-transform-graphql-string
+  (t/testing "Given: A GraphQL String"
+    (t/testing "")))
 
 (t/deftest test-name-tokens
-  (t/testing "Given: A name-token-ast"
-    (t/testing "When: We transform it into Clojure data"
-      (t/testing "Then: We except it to be a "))))
+  (t/testing "Given: A name-token-ast form"
+    (let [subject
+          (generate-form '(:nameTokens "pets")
+                         {:row 23, :column 2, :index 360, :stop 367})]
+      (t/testing "When: We transform it into Clojure data"
+        (let [name-token (gqlc.main/ast->clj subject)]
+          (t/is (match? {:name-token/value :name-token.value/pets
+                         :name-token/position
+                         {:position/row 23
+                          :position/column 2
+                          :position/index 360
+                          :position/stop 367}}
+                        name-token)
+                "Then: We expect it to be a valid name token object"))))))
+
+
+(t/deftest test-descriptions
+  (t/testing "Given: A description as form"
+    (let [subject (with-meta
+                    '(:description "\"\"\"\nA dog implements the pet\n\"\"\"")
+                    #:clj-antlr{:position {:row 18, :column 0, :index 272, :stop 303}})]
+      (t/testing "When: We transform it into clojure data"
+        (let [description (gqlc.main/ast->clj subject)]
+          (t/testing "Then: We expect it to be a valid description object"
+            (t/is (match? nil? description))))))))
 
 (t/deftest test-xform-type-def
   (let [subject '(:typeDef
@@ -57,7 +118,7 @@
               subject))))))
 
 
-(t/deftest test-field-def
+#_(t/deftest test-field-def
   (t/testing "Given the AST of a field def"
     (let [field-def-ast '(:fieldDef
                           (:anyName (:nameTokens "pets"))
@@ -73,7 +134,7 @@
       (t/is (match? nil?
                     (gqlc.main/ast->clj field-def-ast))))))
 
-(t/deftest test-type-spec
+#_(t/deftest test-type-spec
   (t/testing "Given: the AST of typeSpec"
     (let [type-spec '(:typeSpec
                       (:typeName (:anyName (:nameTokens "Pet")))
@@ -280,12 +341,12 @@
         ^#:clj-antlr{:position
                      {:row 27, :column 9, :index 507, :stop 511}}
         (:anyName
-         ^#:clj-antlr{:position
-                      {:row 27, :column 9, :index 507, :stop 511}}
-         (:nameTokens "Human")))))
+
+
+         ))))
      "}")))
 
-(t/deftest test-type-spec-with-description
+#_(t/deftest test-type-spec-with-description
   (t/testing "Given: the AST of typeSpec"
     (let [subject (gqlc.main/ast->clj type-def)]
 

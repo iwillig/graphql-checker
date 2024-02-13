@@ -250,12 +250,15 @@
     :position (get-position args)}))
 
 (comment
-  (ns-unmap *ns* 'xform))
+  ;;
+  (ns-unmap *ns* 'ast-clj))
 
 (def default-antlr-options
   {:throw? false})
 
 (defn parse-schema-string
+  "Given a GraphQL String
+   Attempt to parse the graphql forms in the provided string"
   [gql-string]
   (antlr/parse grammar-schema
                default-antlr-options
