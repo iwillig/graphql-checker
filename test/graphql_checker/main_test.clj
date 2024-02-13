@@ -14,12 +14,16 @@
      :key :value})))
 
 (t/deftest test-parse-schema
-
   (t/testing "when we parse the schema"
     (let [thing (gqlc.main/-main)]
       (binding [*print-meta* true]
         (t/is (match? nil?
                       (gqlc.main/xform thing)))))))
+
+(t/deftest test-name-tokens
+  (t/testing "Given: A name-token-ast"
+    (t/testing "When: We transform it into Clojure data"
+      (t/testing "Then: We except it to be a "))))
 
 (t/deftest test-xform-type-def
   (let [subject '(:typeDef

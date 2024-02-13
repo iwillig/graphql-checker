@@ -8,12 +8,15 @@
    [datascript.core :as d]
    [clojure.java.io :as io]))
 
+(set! *warn-on-reflection* true)
+
 ;; Load Lacinia's GraphQL Schema
 (def grammar-schema (common/compile-grammar
                      "com/walmartlabs/lacinia/schema.g4"))
 
 (def grammar-graphql (common/compile-grammar
                       "com/walmartlabs/lacinia/Graphql.g4"))
+
 
 (def datascript-schema
   {})
@@ -38,10 +41,11 @@
                values)
     {::namespace namespace}))
 
-(def position    (partial namespace-map :position))
-(def description (partial namespace-map :description))
-(def name-token  (partial namespace-map :name-token))
+(def position        (partial namespace-map :position))
+(def description     (partial namespace-map :description))
+(def name-token      (partial namespace-map :name-token))
 (def list-name-token (partial namespace-map :list-name-token))
+
 (def type-spec   (partial namespace-map :type-spec))
 (def field-def   (partial namespace-map :field-def))
 (def fields      (partial namespace-map :fields))
@@ -215,7 +219,6 @@
   [args]
   (let [type-info (group-info (prepare-parse-production args))
         type-spec (one type-info :type-spec)]
-
     (list-type
      {:type-spec type-spec
       :position (get-position args)})))
@@ -249,11 +252,21 @@
 (comment
   (ns-unmap *ns* 'xform))
 
-(defn parse-schema
+(def default-antlr-options
+  {:throw? false})
+
+(defn parse-schema-string
+  [gql-string]
+  (antlr/parse grammar-schema
+               default-antlr-options
+               gql-string))
+
+(defn parse-schema-file
   [path]
   (let [gql-string    (slurp (io/resource path))
         parsed-schema (antlr/parse grammar-schema {:throw? false} gql-string)]
     parsed-schema))
 
+
 (defn -main [& _args]
-  (parse-schema "test-data/example.graphql"))
+  (parse-schema-file "test-data/example.graphql"))
