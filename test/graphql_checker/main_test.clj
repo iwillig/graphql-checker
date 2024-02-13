@@ -18,7 +18,7 @@
     (let [thing (gqlc.main/-main)]
       (binding [*print-meta* true]
         (t/is (match? nil?
-                      (gqlc.main/xform thing)))))))
+                      (gqlc.main/ast->clj thing)))))))
 
 (t/deftest test-name-tokens
   (t/testing "Given: A name-token-ast"
@@ -53,7 +53,7 @@
     (t/testing "When given a valid type def"
       (t/is (match?
              nil?
-             (gqlc.main/xform
+             (gqlc.main/ast->clj
               subject))))))
 
 
@@ -71,14 +71,14 @@
                             "]")))]
 
       (t/is (match? nil?
-                    (gqlc.main/xform field-def-ast))))))
+                    (gqlc.main/ast->clj field-def-ast))))))
 
 (t/deftest test-type-spec
   (t/testing "Given: the AST of typeSpec"
     (let [type-spec '(:typeSpec
                       (:typeName (:anyName (:nameTokens "Pet")))
                       (:required "!"))
-          subject (gqlc.main/xform type-spec)]
+          subject (gqlc.main/ast->clj type-spec)]
 
       (t/testing "When: ask to transform from AST to ClojureTypes"
         (t/is (match?
@@ -287,7 +287,7 @@
 
 (t/deftest test-type-spec-with-description
   (t/testing "Given: the AST of typeSpec"
-    (let [subject (gqlc.main/xform type-def)]
+    (let [subject (gqlc.main/ast->clj type-def)]
 
       (prn subject)
 

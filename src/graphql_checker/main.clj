@@ -17,10 +17,6 @@
 (def grammar-graphql (common/compile-grammar
                       "com/walmartlabs/lacinia/Graphql.g4"))
 
-
-(def datascript-schema
-  {})
-
 (defn detect-namespace
   "Function that can be used multimethods to correct detect the
   entites's namespace."
@@ -79,19 +75,23 @@
   :anyName
   :nameTokens)
 
+
 ;; Taken and simplifed from Lacina parser.schema
-(defmulti xform
+(defmulti ast->clj
+  "Given an AST of a GraphQL form
+
+   Transform and return that AST struture into namespaced clojure maps"
   #'first)
 
 ;; Default method
-(defmethod xform :default [prod]
+(defmethod ast->clj :default [prod]
   prod)
 
 (def drop-string-xform
   (comp
    (remove string?)
    (remove keyword?)
-   (map xform)
+   (map ast->clj)
    (remove nil?)))
 
 (defn- group-info
@@ -117,13 +117,13 @@
   [type-info type-name]
   (first (all type-info type-name)))
 
-(defmethod xform :nameTokens
+(defmethod ast->clj :nameTokens
   [[_ token :as args]]
   (name-token
    {:value    (keyword "name-token.value" token)
     :position (get-position args)}))
 
-(defmethod xform :description
+(defmethod ast->clj :description
   [[_ description-value :as args]]
   (description
    {:value (->
@@ -133,11 +133,11 @@
             (str/trim))
     :position (get-position args)}))
 
-(defmethod xform :anyName
+(defmethod ast->clj :anyName
   [[_ name-tokens]]
-  (xform name-tokens))
+  (ast->clj name-tokens))
 
-(defmethod xform :required
+(defmethod ast->clj :required
   [[_ value :as args]]
   (required {:value (= value "!")
              :position (get-position args)}))
@@ -145,7 +145,7 @@
 (comment
   '(:implementationDef "implements" "Sentient"))
 
-(defmethod xform :implementationDef
+(defmethod ast->clj :implementationDef
   [[_ operation & types]]
   (implements {:operation operation
                :type-values (mapv keyword (remove #{"&"} types))}))
@@ -157,7 +157,7 @@
                                                 :type-name/name
                                                 :name-token/value])}))
 
-(defmethod xform :typeSpec
+(defmethod ast->clj :typeSpec
   [args]
   (let [type-info (group-info (prepare-parse-production args))
 
@@ -174,7 +174,7 @@
                     :list-type list-type})]
     type-spec))
 
-(defmethod xform :argument
+(defmethod ast->clj :argument
   [parse-prod]
   (let [type-info (group-info (prepare-parse-production parse-prod))
         arg-name  (one type-info :name-token)
@@ -183,7 +183,7 @@
                :type-spec     type-spec
                :position      (get-position parse-prod)})))
 
-(defmethod xform :argList
+(defmethod ast->clj :argList
   [parse-production]
   (arg-list
    {:arguments (into []
@@ -191,7 +191,7 @@
                      parse-production)
     :position  (get-position parse-production)}))
 
-(defmethod xform :fieldDef
+(defmethod ast->clj :fieldDef
   [args]
   (let [type-info  (group-info (prepare-parse-production args))
         field-name (one type-info :name-token)
@@ -201,13 +201,13 @@
       :type-spec  type-spec
       :position   (get-position args)})))
 
-(defmethod xform :typeName
+(defmethod ast->clj :typeName
   [[_ any-name :as args]]
   (type-name
-   {:name     (xform any-name)
+   {:name     (ast->clj any-name)
     :position (get-position args)}))
 
-(defmethod xform :fieldDefs
+(defmethod ast->clj :fieldDefs
   [[_ & rest-prod :as args]]
   (fields
    {:fields   (into []
@@ -215,7 +215,7 @@
                   rest-prod)
     :position (get-position args)}))
 
-(defmethod xform :listType
+(defmethod ast->clj :listType
   [args]
   (let [type-info (group-info (prepare-parse-production args))
         type-spec (one type-info :type-spec)]
@@ -223,7 +223,7 @@
      {:type-spec type-spec
       :position (get-position args)})))
 
-(defmethod xform :typeDef
+(defmethod ast->clj :typeDef
   [prod]
   (let [values
         (into []
@@ -243,10 +243,10 @@
       :implements  implements
       :position    (get-position prod)})))
 
-(defmethod xform :graphqlSchema
+(defmethod ast->clj :graphqlSchema
   [[_ graphql-schema :as args]]
   (graphql-schema
-   {:schema   (xform graphql-schema)
+   {:schema   (ast->clj graphql-schema)
     :position (get-position args)}))
 
 (comment
@@ -263,10 +263,8 @@
 
 (defn parse-schema-file
   [path]
-  (let [gql-string    (slurp (io/resource path))
-        parsed-schema (antlr/parse grammar-schema {:throw? false} gql-string)]
-    parsed-schema))
-
+  (let [gql-string    (slurp (io/resource path))]
+    (parse-schema-string gql-string)))
 
 (defn -main [& _args]
   (parse-schema-file "test-data/example.graphql"))
