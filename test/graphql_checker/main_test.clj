@@ -1,6 +1,6 @@
 (ns graphql-checker.main-test
   (:require
-   [graphql-checker.main :as gqlc.main]
+   [gqlc.main :as gqlc.main]
    [matcher-combinators.test]
    ;;[matcher-combinators.matchers :as m]
    [clojure.test :as t]))

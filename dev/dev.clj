@@ -13,4 +13,9 @@
   ;; Re compile clojure
   (refresh)
 
+  ;; Run the main test
+  (k/run 'graphql-checker.main-test)
+
+
+
   )

@@ -1,11 +1,11 @@
-(ns graphql-checker.main
+(ns gqlc.main
   (:gen-class)
   (:require
    [clj-antlr.core :as antlr]
    [cuerdas.core :as str]
    [com.walmartlabs.lacinia.parser.common :as common]
    [clojure.core.match :refer [match]]
-   [datascript.core :as d]
+   ;;[datascript.core :as d]
    [clojure.java.io :as io]))
 
 (set! *warn-on-reflection* true)
@@ -104,7 +104,7 @@
          drop-string-xform
          parsed-form))
 
-(defn- prep-and-group-production
+#_(defn- prep-and-group-production
   [parsed-form]
   (-> (prepare-parse-production parsed-form)
       (group-info)))
