@@ -6,7 +6,9 @@
    [com.walmartlabs.lacinia.parser.common :as common]
    [clojure.core.match :refer [match]]
    ;;[datascript.core :as d]
-   [clojure.java.io :as io]))
+   [clojure.java.io :as io])
+  (:import
+   (java.util.concurrent.atomic AtomicLong)))
 
 (set! *warn-on-reflection* true)
 
@@ -30,8 +32,14 @@
   [namespace values]
   (with-meta
     (reduce-kv (fn [acc key value]
+
                  (assoc acc
-                        (keyword (name namespace) (name key))
+                        (keyword
+                         (condp = key
+                           :position "form"
+                           :error    "form"
+                           (name namespace))
+                          (name key))
                         value))
                {}
                values)
@@ -104,7 +112,7 @@
          drop-string-xform
          parsed-form))
 
-#_(defn- prep-and-group-production
+(defn- prep-and-group-production
   [parsed-form]
   (-> (prepare-parse-production parsed-form)
       (group-info)))
@@ -195,10 +203,12 @@
   [args]
   (let [type-info  (group-info (prepare-parse-production args))
         field-name (one type-info :name-token)
-        type-spec  (one type-info :type-spec)]
+        type-spec  (one type-info :type-spec)
+        description (one type-info :description)]
     (field-def
      {:field-name field-name
       :type-spec  type-spec
+      :description description
       :position   (get-position args)})))
 
 (defmethod ast->clj :typeName
@@ -244,14 +254,17 @@
       :position    (get-position prod)})))
 
 (defmethod ast->clj :graphqlSchema
-  [[_ graphql-schema :as args]]
-  (graphql-schema
-   {:schema   (ast->clj graphql-schema)
-    :position (get-position args)}))
+  [[_ graphql-schema-value :as args]]
+  (let [parsed-schema (prep-and-group-production args)
+        type-defs     (all parsed-schema :type-def)]
+
+    (graphql-schema
+     {:types type-defs
+      :position (get-position args)})))
 
 (comment
   ;;
-  (ns-unmap *ns* 'ast-clj))
+  (ns-unmap *ns* 'ast->clj))
 
 (def default-antlr-options
   {:throw? false})
@@ -264,10 +277,54 @@
                default-antlr-options
                gql-string))
 
+(defn parse-&-transform-string
+  [gql-string]
+  (ast->clj
+   (parse-schema-string gql-string)))
+
 (defn parse-schema-file
   [path]
   (let [gql-string    (slurp (io/resource path))]
     (parse-schema-string gql-string)))
+
+;; --------------------------------------------------
+
+(defonce ^:private temp-id
+  (AtomicLong. 0))
+
+(defn- next-temp-id []
+  (.decrementAndGet ^AtomicLong temp-id))
+
+(defn dispatch-to-datalog
+  [_database-objects graphql-expression]
+  (clojure.pprint/pprint (type graphql-expression))
+  (detect-namespace graphql-expression))
+
+(defmulti to-datalog
+  "Given a database-values accumulator
+  "
+  #'dispatch-to-datalog)
+
+(defmethod to-datalog :default [database-objects graphql-expression]
+  graphql-expression
+  )
+
+(defn all-to-datalog
+  "Transform all of the GraphQL Expressions in a datalog"
+  [graphql-forms]
+  (reduce
+   to-datalog
+   []
+   graphql-forms))
+
+
+(comment
+  (ns-unmap *ns* 'ast->clj)
+  (ns-unmap *ns* 'to-datalog)
+
+  )
+
+;; --------------------------------------------------
 
 (defn -main [& _args]
   (parse-schema-file "test-data/example.graphql"))

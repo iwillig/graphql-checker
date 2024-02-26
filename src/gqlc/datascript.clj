@@ -1,6 +1,12 @@
 (ns gqlc.datascript
   (:require
+
+   [malli.error :as me]
+   [malli.core :as m]
+   [malli.generator :as mg]
+
    [datascript.core :as d]))
+
 
 (comment
   (d/q ))
@@ -92,10 +98,6 @@
    {:db/doc ""}
 
    })
-
-
-
-
 
 (defn create-schema-db
   "Given no args
