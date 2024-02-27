@@ -78,7 +78,8 @@ type Person {
     (let [transformed-graphql (gqlc.main/parse-&-transform-string
                                example-graphql-string)]
 
-      (t/is (match? some?
+
+      (t/is (match? nil?
                     (gqlc.main/all-to-datalog transformed-graphql))))))
 
 (comment

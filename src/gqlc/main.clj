@@ -295,25 +295,36 @@
 (defn- next-temp-id []
   (.decrementAndGet ^AtomicLong temp-id))
 
-(defn dispatch-to-datalog
-  [_database-objects graphql-expression]
-  (clojure.pprint/pprint (type graphql-expression))
-  (detect-namespace graphql-expression))
 
 (defmulti to-datalog
   "Given a database-values accumulator
   "
-  #'dispatch-to-datalog)
+  #'detect-namespace)
 
-(defmethod to-datalog :default [database-objects graphql-expression]
-  graphql-expression
-  )
+(defmethod to-datalog :default [graphql-expression]
+  graphql-expression)
+
+(defmethod to-datalog :type-def
+  [gql-exp]
+  (let [{:type-def/keys [type-name description fields]} gql-exp
+        type-name-id (next-temp-id)
+        description-id (next-temp-id)]
+
+    [(assoc type-name :db/id type-name-id)
+     (assoc description :db/id description-id)
+     (map to-datalog fields)]))
+
 
 (defn all-to-datalog
   "Transform all of the GraphQL Expressions in a datalog"
   [graphql-forms]
-  (reduce
-   to-datalog
+  (reduce-kv
+   (fn [datoms _key value]
+     (if (seqable? value)
+       (into datoms
+             (map to-datalog value))
+
+       (conj datoms (to-datalog value))))
    []
    graphql-forms))
 
