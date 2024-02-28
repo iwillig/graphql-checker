@@ -11,6 +11,10 @@
    [:position/index pos?]
    [:position/stop pos?]])
 
+
+(def FormError
+  [:map ])
+
 (def Description
   [:map
    [:description/value string?]
@@ -60,14 +64,6 @@
    [:arg-list/arguments [:vector Argument]]
    [:form/position FormPosition]])
 
-(def TypeDef
-  [:map
-   [:type-def/type-name NameToken]
-   [:type-def/description Description]
-   [:type-def/fields [:vector]]
-   [:type-def/implements Implements]
-   [:form/position FormPosition]])
-
 (def TypeName
   [:map
    [:type-name/name NameToken]
@@ -81,12 +77,29 @@
 
 (def FieldDefs
   [:map
-   [:fields/fields [:vector]]
+   [:fields/fields [:vector FieldDef]]
    [:form/position FormPosition]])
+
+(def TypeDef
+  [:map
+   [:type-def/type-name NameToken]
+   [:type-def/description Description]
+   [:type-def/fields FieldDefs]
+   [:type-def/implements Implements]
+   [:form/position FormPosition]
+   [:form/error    FormError]])
+
+(def QueryDef
+  [:map])
+
+(def MutationDef
+  [:map])
 
 (def GraphQlSchema
   [:map
-   [:graphql-schema/schema map?]
+   [:graphql-schema/types [:vector TypeDef]]
+   [:graphql-schema/queries [:vector QueryDef]]
+   [:graphql-schema/mutations [:vector MutationDef]]
    [:form/position FormPosition]])
 
 

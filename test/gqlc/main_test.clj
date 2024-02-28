@@ -60,6 +60,7 @@ type Person {
   name: String
 }
 
+
 ")
 
 (t/deftest test-parse-gql-string
@@ -77,10 +78,14 @@ type Person {
   (t/testing "Given: A GraphQL String"
     (let [transformed-graphql (gqlc.main/parse-&-transform-string
                                example-graphql-string)]
-
-
       (t/is (match? nil?
                     (gqlc.main/all-to-datalog transformed-graphql))))))
+
+
+(t/deftest test-parsing-full-schema
+  (t/testing "Given: A Full GraphQL Schema"
+    (let [])))
+
 
 (comment
 
