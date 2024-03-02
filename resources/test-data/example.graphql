@@ -6,6 +6,22 @@ type Query {
   findDog(searchBy: FindDogInput): Dog
 }
 
+type AddDocResult {
+  name: String
+  nickName: String
+  barkVolumn: Int
+}
+
+input AddDogInput {
+  name: String
+  nickName: String
+  barkVolumn: Int
+}
+
+type Mutation {
+  addDog(inputs: AddDogInput): AddDocResult
+}
+
 """
 Another doc string
 """

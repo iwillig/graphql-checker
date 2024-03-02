@@ -1,17 +1,16 @@
 (ns dev
   (:require
    [kaocha.repl :as k]
-   [clojure.tools.namespace.repl
-    :as repl :refer [refresh]]))
+   [clj-reload.core :as reload]))
 
-
-
+(reload/init
+  {:dirs ["src" "dev" "test"]})
 
 
 (comment
 
+  (reload/reload)
   ;; Re compile clojure
-  (refresh)
 
   ;; Run the main test
   (k/run 'graphql-checker.main-test)

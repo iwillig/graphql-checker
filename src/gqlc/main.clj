@@ -5,6 +5,7 @@
    [cuerdas.core :as str]
    [com.walmartlabs.lacinia.parser.common :as common]
    [clojure.core.match :refer [match]]
+   [medley.core :as m]
    ;;[datascript.core :as d]
    [clojure.java.io :as io])
   (:import
@@ -25,44 +26,50 @@
   [x]
   (::namespace (meta x)))
 
-(defn namespace-map
+(defn make-namespaced-map
   "Given a keyword of a namespace, and a normal clojure map
    Returns the clojure map with the keys namespaced with the provided
   namespace"
   [namespace values]
   (with-meta
     (reduce-kv (fn [acc key value]
-
-                 (assoc acc
+                 (m/assoc-some acc
                         (keyword
-                         (condp = key
-                           :position "form"
-                           :error    "form"
+                         (case key
+                           (:position :error :description) "form"
                            (name namespace))
-                          (name key))
+                         (name key))
                         value))
                {}
                values)
     {::namespace namespace}))
 
-(def position        (partial namespace-map :position))
-(def description     (partial namespace-map :description))
-(def name-token      (partial namespace-map :name-token))
-(def list-name-token (partial namespace-map :list-name-token))
+(def position        (partial make-namespaced-map :position))
+(def description     (partial make-namespaced-map :description))
+(def name-token      (partial make-namespaced-map :name-token))
+(def list-name-token (partial make-namespaced-map :list-name-token))
 
-(def type-spec   (partial namespace-map :type-spec))
-(def field-def   (partial namespace-map :field-def))
-(def fields      (partial namespace-map :fields))
-(def list-type   (partial namespace-map :list-type))
-(def type-name   (partial namespace-map :type-name))
-(def type-def    (partial namespace-map :type-def))
-(def argument    (partial namespace-map :argument))
-(def arg-list    (partial namespace-map :arg-list))
-(def implements  (partial namespace-map :implements))
-(def required    (partial namespace-map :required))
+(def type-spec   (partial make-namespaced-map :type-spec))
+(def field-def   (partial make-namespaced-map :field-def))
+(def fields      (partial make-namespaced-map :fields))
+(def list-type   (partial make-namespaced-map :list-type))
+(def type-name   (partial make-namespaced-map :type-name))
+(def type-def    (partial make-namespaced-map :type-def))
+(def argument    (partial make-namespaced-map :argument))
+(def arg-list    (partial make-namespaced-map :arg-list))
+(def implements  (partial make-namespaced-map :implements))
+(def required    (partial make-namespaced-map :required))
+
+(def input-type-def (partial make-namespaced-map :input-type-def))
+
+(def input-value-def (partial make-namespaced-map :input-value-def))
+(def input-value-defs (partial make-namespaced-map :input-value-defs))
+
+(def graphql-schema (partial make-namespaced-map :graphql-schema))
 
 
-(def graphql-schema (partial namespace-map :graphql-schema))
+(def mutation-token-value :name-token.value/Mutation)
+(def query-token-value :name-token.value/Query)
 
 (defn get-position
   "Given an object with a poisiton metadata
@@ -174,12 +181,13 @@
 
         list-type (one type-info :list-type)
         type-spec (type-spec
-                   {:name (match [(some? type-name) (some? list-type)]
+                   {:name        (match [(some? type-name) (some? list-type)]
                                  [true false] type-name
                                  [false true] (list-type-name list-type))
-                    :required  required
-                    :position  (get-position args)
-                    :list-type list-type})]
+                    :required    required
+                    :description (one type-info :description)
+                    :position    (get-position args)
+                    :list-type   list-type})]
     type-spec))
 
 (defmethod ast->clj :argument
@@ -203,13 +211,14 @@
   [args]
   (let [type-info  (group-info (prepare-parse-production args))
         field-name (one type-info :name-token)
-        type-spec  (one type-info :type-spec)
-        description (one type-info :description)]
+        type-spec  (one type-info :type-spec)]
+
     (field-def
      {:field-name field-name
       :type-spec  type-spec
-      :description description
-      :position   (get-position args)})))
+
+      :description (one type-info :description)
+      :position    (get-position args)})))
 
 (defmethod ast->clj :typeName
   [[_ any-name :as args]]
@@ -253,13 +262,43 @@
       :implements  implements
       :position    (get-position prod)})))
 
-(defmethod ast->clj :graphqlSchema
-  [[_ graphql-schema-value :as args]]
-  (let [parsed-schema (prep-and-group-production args)
-        type-defs     (all parsed-schema :type-def)]
 
+(defmethod ast->clj :inputValueDefs
+  [[:as args]]
+  (let [prepped-forms (prep-and-group-production args)]
+    (input-value-defs {:value-defs  prepped-forms
+                       :description (one prepped-forms :description)
+                       :position    (get-position args)})))
+
+(defmethod ast->clj :inputValueDef
+  [[:as args]]
+  (let [prepped-forms    (prep-and-group-production args)
+        input-value-name (one prepped-forms :input-value-def)
+        type-spec        (one prepped-forms :type-spec)]
+    (input-value-def {:type-spec        type-spec
+                      :input-value-name input-value-name
+                      :description      (one prepped-forms :description)
+                      :position         (get-position args)})))
+
+(defmethod ast->clj :inputTypeDef
+  [[:as args]]
+  (let [prepped-forms    (prep-and-group-production args)
+        name-token       (one prepped-forms :name-token)
+        input-value-defs (one prepped-forms :input-value-defs)]
+
+    (input-type-def {:input-name       name-token
+                     :input-value-defs input-value-defs
+                     :description      (one prepped-forms :description)
+                     :position         (get-position args)})))
+
+(defmethod ast->clj :graphqlSchema
+  [[:as args]]
+  (let [parsed-schema (prep-and-group-production args)
+        type-defs     (all parsed-schema :type-def)
+        input-defs    (all parsed-schema :input-type-def)]
     (graphql-schema
-     {:types type-defs
+     {:types    type-defs
+      :inputs   input-defs
       :position (get-position args)})))
 
 (comment
@@ -295,38 +334,41 @@
 (defn- next-temp-id []
   (.decrementAndGet ^AtomicLong temp-id))
 
+(defn- detect-to-datalog
+  [_parent-temp-id gql-exp]
+  (detect-namespace gql-exp))
 
 (defmulti to-datalog
   "Given a database-values accumulator
   "
-  #'detect-namespace)
+  #'detect-to-datalog)
 
 (defmethod to-datalog :default [graphql-expression]
   graphql-expression)
 
 (defmethod to-datalog :type-def
-  [gql-exp]
-  (let [{:type-def/keys [type-name description fields]} gql-exp
-        type-name-id (next-temp-id)
-        description-id (next-temp-id)]
+  [_parent-temp-id _gql-exp]
+  (let [type-def-id (next-temp-id)
+        ;;{:type-def/keys [type-name description fields]} gql-exp
+        ;;type-name-id (next-temp-id)
+        ;;description-id (next-temp-id)
+        ]
+    [{:db/id type-def-id}]))
 
-    [(assoc type-name :db/id type-name-id)
-     (assoc description :db/id description-id)
-     (map to-datalog fields)]))
-
+(defmethod to-datalog :graphql-schema
+  [parent-temp-id gql-exp]
+  (let [{:graphql-schema/keys [types]} gql-exp]
+    (m/join
+     [[{:db/id temp-id
+        :graphql-schema/name :uknown}]
+      (m/join
+       (mapv (partial to-datalog parent-temp-id) types))])))
 
 (defn all-to-datalog
   "Transform all of the GraphQL Expressions in a datalog"
-  [graphql-forms]
-  (reduce-kv
-   (fn [datoms _key value]
-     (if (seqable? value)
-       (into datoms
-             (map to-datalog value))
-
-       (conj datoms (to-datalog value))))
-   []
-   graphql-forms))
+  [graphql-schema]
+  (let [schema-temp-id (next-temp-id)]
+    (to-datalog schema-temp-id graphql-schema)))
 
 
 (comment

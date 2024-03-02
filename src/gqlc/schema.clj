@@ -11,7 +11,6 @@
    [:position/index pos?]
    [:position/stop pos?]])
 
-
 (def FormError
   [:map ])
 

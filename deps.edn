@@ -9,6 +9,12 @@
   metosin/jsonista                   {:mvn/version "0.3.8"}
   funcool/cuerdas                    {:mvn/version "2023.11.09-407"}
 
+
+  io.cucumber/cucumber-java          {:mvn/version "7.15.0"}
+
+  io.github.tonsky/clj-reload {:mvn/version "0.3.0"}
+
+
   clj-antlr/clj-antlr                {:mvn/version "0.2.13"}
   clj-commons/clj-yaml               {:mvn/version "1.0.27"}
   com.walmartlabs/lacinia            {:mvn/version "1.2.2"}
@@ -20,12 +26,13 @@
   lambdaisland/kaocha-cloverage      {:mvn/version "1.1.89"}
   lambdaisland/kaocha-junit-xml      {:mvn/version "1.17.101"}
 
-  org.clojure/tools.namespace        {:mvn/version "1.4.5"}
   nubank/matcher-combinators         {:mvn/version "3.9.1"}
 
   org.clojure/test.check             {:mvn/version "1.1.1"}
 
   metosin/malli                      {:mvn/version "0.14.0"}
+
+  dev.weavejester/medley             {:mvn/version "1.7.0"}
 
   org.clojure/tools.cli              {:mvn/version "1.0.219"}
   io.github.nextjournal/markdown     {:mvn/version "0.5.148"}

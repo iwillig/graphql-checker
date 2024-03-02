@@ -3,7 +3,8 @@
    [gqlc.main :as gqlc.main]
    [matcher-combinators.test]
    ;;[matcher-combinators.matchers :as m]
-   [clojure.test :as t]))
+   [clojure.test :as t]
+   [clojure.java.io :as io]))
 
 (defn gen-random-antlr-position
   []
@@ -21,6 +22,13 @@
      #:clj-antlr{:position position})))
 
 
+(defn load-grapql-example
+  "Given a path on the Java resource path
+   Returns a parsed and transformed-graphql structure"
+  [path]
+  (-> (io/resource path)
+      (slurp)
+      (gqlc.main/parse-schema-string)))
 
 (def example-ast
   '(:graphqlSchema
@@ -82,9 +90,7 @@ type Person {
                     (gqlc.main/all-to-datalog transformed-graphql))))))
 
 
-(t/deftest test-parsing-full-schema
-  (t/testing "Given: A Full GraphQL Schema"
-    (let [])))
+
 
 
 (comment
@@ -175,6 +181,60 @@ type Person {
              (gqlc.main/ast->clj
               subject))))))
 
+(def mutation-type-examples
+  "
+\"\"\"
+This is a description AddDocResult
+\"\"\"
+type AddDocResult {
+  \"\"\"
+  This is a description of the name field
+  \"\"\"
+  name: String
+  \"\"\"
+  This is a description of the nickName field
+  \"\"\"
+  nickName: String
+  \"\"\"
+  This is a description of barkVolumn field
+  \"\"\"
+  barkVolumn: Int
+}
+
+\"\"\"
+This is a description of the AddDogInput
+\"\"\"
+input AddDogInput {
+  \"\"\"
+  This is a description name
+  \"\"\"
+  name: String
+  \"\"\"
+  This is a description nickName
+  \"\"\"
+  nickName: String
+  \"\"\"
+  This is a description barkVolumn
+  \"\"\"
+  barkVolumn: Int
+}
+
+\"\"\"
+This is a description of the top level mutations
+\"\"\"
+type Mutation {
+  \"\"\"
+  This is a description of the addDog mutation
+  \"\"\"
+  addDog(inputs: AddDogInput): AddDocResult
+}
+")
+
+(t/deftest test-mutation-types
+  (let [parsed-subject (gqlc.main/parse-&-transform-string mutation-type-examples)]
+
+    (t/is (match? nil
+                  (gqlc.main/all-to-datalog parsed-subject)))))
 
 #_(t/deftest test-field-def
   (t/testing "Given the AST of a field def"
@@ -203,6 +263,13 @@ type Person {
         (t/is (match?
                nil?
                subject))))))
+
+
+(t/deftest test-example-graphql-schema
+  (let [graphql (load-grapql-example "test-data/example.graphql")]
+
+    (t/is (match? nil graphql))))
+
 
 (def type-def
   '(:typeDef
