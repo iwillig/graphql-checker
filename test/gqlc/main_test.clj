@@ -231,10 +231,10 @@ type Mutation {
 ")
 
 (t/deftest test-mutation-types
-  (let [parsed-subject (gqlc.main/parse-&-transform-string mutation-type-examples)]
+  (let [parsed-subject (gqlc.main/parse-&-transform-string mutation-type-examples)
+        subject        (gqlc.main/all-to-datalog parsed-subject)]
 
-    (t/is (match? nil
-                  (gqlc.main/all-to-datalog parsed-subject)))))
+    (t/is (match? nil subject))))
 
 #_(t/deftest test-field-def
   (t/testing "Given the AST of a field def"

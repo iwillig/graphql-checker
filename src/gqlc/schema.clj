@@ -17,8 +17,8 @@
 (def Description
   [:map
    [:description/value string?]
-   [:form/position FormPosition]])
-
+   [:form/position FormPosition]
+   [:form/parent   map?]])
 
 (def NameToken
   [:map
@@ -96,9 +96,11 @@
 
 (def GraphQlSchema
   [:map
+
    [:graphql-schema/types [:vector TypeDef]]
    [:graphql-schema/queries [:vector QueryDef]]
    [:graphql-schema/mutations [:vector MutationDef]]
+
    [:form/position FormPosition]])
 
 

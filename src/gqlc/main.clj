@@ -327,6 +327,7 @@
     (parse-schema-string gql-string)))
 
 ;; --------------------------------------------------
+;; Translate to DataLog
 
 (defonce ^:private temp-id
   (AtomicLong. 0))
@@ -335,7 +336,7 @@
   (.decrementAndGet ^AtomicLong temp-id))
 
 (defn- detect-to-datalog
-  [_parent-temp-id gql-exp]
+  [_parent-temp-id _temp-id gql-exp]
   (detect-namespace gql-exp))
 
 (defmulti to-datalog
@@ -343,32 +344,52 @@
   "
   #'detect-to-datalog)
 
-(defmethod to-datalog :default [graphql-expression]
+(defmethod to-datalog :default [_parent_id _temp_id graphql-expression]
   graphql-expression)
 
+(defmethod to-datalog :position
+  [parent-id temp-id gql-form]
+  [(merge {:db/id temp-id
+           :form/parent parent-id}
+          gql-form)])
+
+(defmethod to-datalog :description
+  [parent-id temp-id {:description/keys [value] :form/keys [position]}]
+  (m/join
+   [[{:db/id temp-id
+      :description/value value
+      :form/parent parent-id}]
+    [(to-datalog temp-id (next-temp-id) position)]]))
+
 (defmethod to-datalog :type-def
-  [_parent-temp-id _gql-exp]
-  (let [type-def-id (next-temp-id)
-        ;;{:type-def/keys [type-name description fields]} gql-exp
+  [parent-temp-id temp-id gql-exp]
+  (let [{:form/keys [description]} gql-exp
         ;;type-name-id (next-temp-id)
-        ;;description-id (next-temp-id)
-        ]
-    [{:db/id type-def-id}]))
+        description-id (next-temp-id)]
+    (m/join
+     [[(merge {:db/id temp-id
+               :graphql/schema parent-temp-id
+               :form/parent parent-temp-id})]
+      (to-datalog temp-id description-id description)])))
 
 (defmethod to-datalog :graphql-schema
-  [parent-temp-id gql-exp]
+  [_parent-temp-id temp-id gql-exp]
   (let [{:graphql-schema/keys [types]} gql-exp]
     (m/join
      [[{:db/id temp-id
         :graphql-schema/name :uknown}]
       (m/join
-       (mapv (partial to-datalog parent-temp-id) types))])))
+       (mapv  (fn [type]
+               (to-datalog temp-id (next-temp-id) type))
+             types))])))
 
 (defn all-to-datalog
   "Transform all of the GraphQL Expressions in a datalog"
   [graphql-schema]
   (let [schema-temp-id (next-temp-id)]
-    (to-datalog schema-temp-id graphql-schema)))
+    (to-datalog schema-temp-id
+                schema-temp-id
+                graphql-schema)))
 
 
 (comment
