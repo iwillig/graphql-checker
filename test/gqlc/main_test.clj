@@ -234,6 +234,7 @@ type Mutation {
   (let [parsed-subject (gqlc.main/parse-&-transform-string mutation-type-examples)
         subject        (gqlc.main/all-to-datalog parsed-subject)]
 
+    #_(t/is (match? nil parsed-subject))
     (t/is (match? nil subject))))
 
 #_(t/deftest test-field-def

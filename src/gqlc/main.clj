@@ -3,6 +3,7 @@
   (:require
    [clj-antlr.core :as antlr]
    [cuerdas.core :as str]
+   [clojure.walk]
    [com.walmartlabs.lacinia.parser.common :as common]
    [clojure.core.match :refer [match]]
    [medley.core :as m]
@@ -336,7 +337,7 @@
   (.decrementAndGet ^AtomicLong temp-id))
 
 (defn- detect-to-datalog
-  [_parent-temp-id _temp-id gql-exp]
+  [_parent-temp-id gql-exp]
   (detect-namespace gql-exp))
 
 (defmulti to-datalog
@@ -344,52 +345,49 @@
   "
   #'detect-to-datalog)
 
-(defmethod to-datalog :default [_parent_id _temp_id graphql-expression]
-  graphql-expression)
+(defmethod to-datalog :default [_parent_id graphql-expression]
+  nil)
 
 (defmethod to-datalog :position
-  [parent-id temp-id gql-form]
+  [parent-id gql-form]
   [(merge {:db/id temp-id
            :form/parent parent-id}
           gql-form)])
 
 (defmethod to-datalog :description
-  [parent-id temp-id {:description/keys [value] :form/keys [position]}]
-  (m/join
-   [[{:db/id temp-id
-      :description/value value
-      :form/parent parent-id}]
-    [(to-datalog temp-id (next-temp-id) position)]]))
+  [parent-id {:description/keys [value] :form/keys [position]}]
+  [{:db/id temp-id
+    :description/value value
+    :form/parent parent-id}
+   (to-datalog temp-id (next-temp-id) position)])
 
 (defmethod to-datalog :type-def
-  [parent-temp-id temp-id gql-exp]
+  [parent-temp-id gql-exp]
   (let [{:form/keys [description]} gql-exp
-        ;;type-name-id (next-temp-id)
-        description-id (next-temp-id)]
-    (m/join
-     [[(merge {:db/id temp-id
-               :graphql/schema parent-temp-id
-               :form/parent parent-temp-id})]
-      (to-datalog temp-id description-id description)])))
+        type-def-id                (next-temp-id)
+        type-name-id               (next-temp-id)
+        description-id             (next-temp-id)]
+
+    (into [{:db/id type-def-id
+            :form/parent parent-temp-id
+            :form/description description-id
+            :type-def/type-name type-name-id}]
+
+          (mapcat
+           (partial to-datalog type-def-id)
+           (vals gql-exp)))))
 
 (defmethod to-datalog :graphql-schema
-  [_parent-temp-id temp-id gql-exp]
-  (let [{:graphql-schema/keys [types]} gql-exp]
-    (m/join
-     [[{:db/id temp-id
-        :graphql-schema/name :uknown}]
-      (m/join
-       (mapv  (fn [type]
-               (to-datalog temp-id (next-temp-id) type))
-             types))])))
+  [_parent-temp-id gql-exp]
+  (let [schema-id (next-temp-id)]
+    (into
+     [{:db/id schema-id :graphql-schema/name :unknown}]
+     (mapcat
+      (partial to-datalog schema-id)
+      (vals gql-exp)))))
 
-(defn all-to-datalog
-  "Transform all of the GraphQL Expressions in a datalog"
-  [graphql-schema]
-  (let [schema-temp-id (next-temp-id)]
-    (to-datalog schema-temp-id
-                schema-temp-id
-                graphql-schema)))
+(def all-to-datalog
+  (partial to-datalog nil))
 
 
 (comment

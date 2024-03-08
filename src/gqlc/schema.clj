@@ -1,6 +1,5 @@
 (ns gqlc.schema
   (:require
-   [malli.error :as me]
    [malli.core :as m]
    [malli.generator :as mg]))
 
@@ -94,12 +93,17 @@
 (def MutationDef
   [:map])
 
+(def InputDef
+  [:map])
+
 (def GraphQlSchema
   [:map
 
    [:graphql-schema/types [:vector TypeDef]]
    [:graphql-schema/queries [:vector QueryDef]]
+   [:graphql-schema/inputs [:vector InputDef]]
    [:graphql-schema/mutations [:vector MutationDef]]
+
 
    [:form/position FormPosition]])
 

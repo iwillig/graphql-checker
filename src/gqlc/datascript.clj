@@ -1,12 +1,6 @@
 (ns gqlc.datascript
   (:require
-
-   [malli.error :as me]
-   [malli.core :as m]
-   [malli.generator :as mg]
-
    [datascript.core :as d]))
-
 
 (comment
   (d/q ))
@@ -38,12 +32,6 @@
    :form/position       -1}
 
   )
-
-(comment
-  {:row    (dec (.getLine start-token))
-   :column (.getCharPositionInLine start-token)
-   :index  (.getStartIndex start-token)
-   :stop   (.getStopIndex stop-token)})
 
 
 ;; Clojure/DataScript core entity types
@@ -88,14 +76,19 @@
    :position/stop
    {:db/doc "The end of the GraphQL Expression"}
 
+   ;; Type Description
+   :description/value
+   {:db/doc ""}
+
    ;; Form
    :form/position
    {:db/valueType :db.type/ref
     :db/doc ""}
 
-   ;; Type Description
-   :description/value
-   {:db/doc ""}
+   :form/description
+   {:db/valueType :db.type/ref
+    :db/doc ""}
+
 
    })
 
@@ -106,7 +99,6 @@
   []
   (d/create-conn db-schema))
 
-(comment
-  (defonce db (create-schema-db)))
 
-(def db (create-schema-db))
+(comment
+  (def db (create-schema-db)))
